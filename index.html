@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Time + 8h30m — React + MUI (single-file)</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <!-- React / ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+    <!-- Material UI (UMD) -->
+    <script src="https://unpkg.com/@mui/material@5.13.7/umd/material-ui.development.js"></script>
+    <!-- Emotion (peer dependency for MUI) -->
+    <script src="https://unpkg.com/@emotion/react@11.10.6/dist/emotion-react.umd.min.js"></script>
+    <script src="https://unpkg.com/@emotion/styled@11.10.6/dist/emotion-styled.umd.min.js"></script>
+
+    <!-- Babel so we can use JSX in this single HTML file (development only) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+      /* small page centering so it looks nicer */
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: Roboto, "Helvetica Neue", Arial, sans-serif;
+        background: #f5f7fa;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="root"></div>
+
+    <!-- Our React + MUI component -->
+    <script type="text/babel">
+      // Pull MUI exports from the global MaterialUI object
+      const {
+        ThemeProvider,
+        createTheme,
+        CssBaseline,
+        Container,
+        Card,
+        CardContent,
+        Typography,
+        Stack,
+        TextField,
+        Button,
+        ToggleButton,
+        ToggleButtonGroup,
+        IconButton,
+        Tooltip
+      } = MaterialUI;
+
+      const { useState } = React;
+
+      function TimePlusEightHalfHours() {
+        const [mode, setMode] = useState("time"); // 'datetime' or 'time'
+        const [value, setValue] = useState("");
+        const [result, setResult] = useState(null);
+        const [error, setError] = useState("");
+
+        const theme = createTheme({
+          palette: {
+            primary: {
+              main: "#1565c0"
+            }
+          }
+        });
+
+        function addEightHalfHours(date) {
+          const ms = 8 * 60 * 60 * 1000 + 30 * 60 * 1000;
+          return new Date(date.getTime() + ms);
+        }
+
+        function parseInputToDate(val) {
+          if (!val) return null;
+          try {
+            if (mode === "datetime") {
+              const d = new Date(val);
+              if (isNaN(d.getTime())) return null;
+              return d;
+            } else {
+              const now = new Date();
+              const parts = val.split(":").map((s) => parseInt(s, 10));
+              if (parts.length < 2) return null;
+              const [hh, mm] = parts;
+              if (Number.isNaN(hh) || Number.isNaN(mm)) return null;
+              return new Date(now.getFullYear(), now.getMonth(), now.getDate(), hh, mm);
+            }
+          } catch (e) {
+            return null;
+          }
+        }
+
+        function formatFull(d) {
+          if (!d) return "-";
+          return d.toLocaleString();
+        }
+
+        function handleCalculate() {
+          setError("");
+          const parsed = parseInputToDate(value);
+          if (!parsed) {
+            setError("Please enter a valid time or date/time.");
+            setResult(null);
+            return;
+          }
+          const r = addEightHalfHours(parsed);
+          setResult({
+            original: parsed,
+            newTime: r,
+            iso: r.toISOString()
+          });
+        }
+
+        function handleClear() {
+          setValue("");
+          setResult(null);
+          setError("");
+        }
+
+        async function copyResult() {
+          if (!result) return;
+          const text = `+8.5 hours result: ${formatFull(result.newTime)} (ISO: ${result.iso})`;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            try {
+              await navigator.clipboard.writeText(text);
+              // optional: little confirmation
+              alert("Copied result to clipboard");
+            } catch (e) {
+              fallbackCopy(text);
+            }
+          } else {
+            fallbackCopy(text);
+          }
+
+          function fallbackCopy(text) {
+            const ta = document.createElement("textarea");
+            ta.value = text;
+            document.body.appendChild(ta);
+            ta.select();
+            try {
+              document.execCommand("copy");
+              alert("Copied result to clipboard (fallback)");
+            } catch (e) {
+              alert("Unable to copy to clipboard");
+            }
+            document.body.removeChild(ta);
+          }
+        }
+
+        return (
+          <ThemeProvider theme={theme}>
+            <CssBaseline />
+            <Container maxWidth="sm" sx={{ mt: 6 }}>
+              <Card elevation={6} sx={{ borderRadius: 3 }}>
+                <CardContent>
+                  <Stack spacing={2}>
+                    <Typography variant="h5" component="div">
+                      Check exit time (8h 30m)
+                    </Typography>
+
+                    <Typography variant="body2" color="text.secondary">
+                      Enter a punch time, and get exact out time without wasting your energy.
+                    </Typography>
+
+                    <ToggleButtonGroup
+                      value={mode}
+                      exclusive
+                      onChange={(e, v) => v && setMode(v)}
+                      size="small"
+                    >
+                      <ToggleButton value="time">Time only (today)</ToggleButton>
+                      
+                    </ToggleButtonGroup>
+
+                    {mode === "datetime" ? (
+                      <TextField
+                        label="Start (date & time)"
+                        type="datetime-local"
+                        value={value}
+                        onChange={(e) => setValue(e.target.value)}
+                        InputLabelProps={{ shrink: true }}
+                        fullWidth
+                      />
+                    ) : (
+                      <TextField
+                        label="Start time"
+                        type="time"
+                        value={value}
+                        onChange={(e) => setValue(e.target.value)}
+                        InputLabelProps={{ shrink: true }}
+                        fullWidth
+                      />
+                    )}
+
+                    <Stack direction="row" spacing={2}>
+                      <Button variant="contained" onClick={handleCalculate}>
+                        Calculate +8.5 hrs
+                      </Button>
+                      <Button variant="outlined" onClick={handleClear}>
+                        Clear
+                      </Button>
+
+                     
+                    </Stack>
+
+                    {error && (
+                      <Typography color="error" variant="body2">
+                        {error}
+                      </Typography>
+                    )}
+
+                    {result && (
+                      <Card variant="outlined" sx={{ p: 2 }}>
+                        <Stack spacing={1}>
+                          <Typography variant="subtitle2">Input</Typography>
+                          <Typography variant="body1">{formatFull(result.original)}</Typography>
+
+                          <Typography variant="subtitle2" sx={{ mt: 1 }}>
+                            Result (+8.5 hrs)
+                          </Typography>
+                          <Typography variant="h6">{formatFull(result.newTime)}</Typography>
+                          <Typography variant="caption">ISO: {result.iso}</Typography>
+                        </Stack>
+                      </Card>
+                    )}
+
+                    <Typography variant="caption" color="text.secondary">
+                      Note: This uses your browser / system timezone. So make sure it's set
+                      correctly. Bhushan 😊✌️
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Thanks to Ankur Sir inspring me to build this!
+                    </Typography>
+                  </Stack>
+                </CardContent>
+              </Card>
+            </Container>
+          </ThemeProvider>
+        );
+      }
+
+      // mount
+      const root = ReactDOM.createRoot(document.getElementById("root"));
+      root.render(<TimePlusEightHalfHours />);
+    </script>
+  </body>
+</html>
