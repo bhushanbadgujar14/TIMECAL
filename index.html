@@ -115,7 +115,7 @@
 
             function formatFull(d) {
                 if (!d) return "-";
-                return d.toLocaleString();
+                return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             }
 
             function handleCalculate() {
@@ -145,6 +145,7 @@
                 setResult(null);
                 setError("");
             }
+
 
             async function copyResult() {
                 if (!result) return;
@@ -260,7 +261,7 @@
                                     )}
 
                                     <Typography variant="caption" color="text.secondary">
-                                        Note: Always punch a minute later to prevent PA caused by few seconds... Bhushan 😊✌️
+                                        Note: This uses your browser timezone. So make sure it's set correctly. Bhushan 😊✌️
                                     </Typography>
                                     <Typography variant="caption" color="text.secondary">
                                         Thanks for using this!
@@ -280,5 +281,3 @@
 </body>
 
 </html>
-
-
